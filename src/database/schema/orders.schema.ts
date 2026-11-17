@@ -1,10 +1,10 @@
-import { pgTable, text, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
 import { ulid } from "ulid";
 import { users } from "./users.schema";
 import { stores } from "./stores.schema";
 
 export const orders = pgTable("orders", {
-    id: text("id").primaryKey().$defaultFn(() => ulid()),
+    id: serial("id").primaryKey(),
     publicId: text("public_id").$defaultFn(() => ulid()),
     buyerId: integer("buyer_id")
         .notNull()
