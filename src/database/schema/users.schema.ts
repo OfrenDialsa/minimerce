@@ -1,4 +1,4 @@
-import { pgTable, boolean, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { ulid } from "ulid";
 
 export const users = pgTable("users", {
@@ -9,7 +9,7 @@ export const users = pgTable("users", {
     passwordHash: text("password_hash").notNull(),
     phone: text("phone"),
     avatarUrl: text("avatar_url"),
-    isVerified: boolean("is_verified").default(false).notNull(),
+    emailVerified: timestamp("emailVerified", { mode: "date" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

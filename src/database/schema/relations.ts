@@ -5,19 +5,33 @@ import { products } from "./products.schema";
 import { categories } from "./categories.schema";
 import { orderItems } from "./order-items.schema";
 import { orders } from "./orders.schema";
+import { passwordResetTokens } from "./password-reset-tokens.schema";
+import { accounts } from "./accounts.schema";
 
-export const usersRelations = relations(users, ({ one }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
   store: one(stores, {
     fields: [users.id],
     references: [stores.userId],
   }),
+
+  orders: many(orders),
 }));
 
-export const storesRelations = relations(stores, ({ one }) => ({
+export const accountRelations = relations(accounts, ({ one }) => ({
+  users: one(users, {
+    fields: [accounts.userId],
+    references: [users.id],
+  }),
+
+}));
+
+export const storesRelations = relations(stores, ({ one, many }) => ({
   owner: one(users, {
     fields: [stores.userId],
     references: [users.id],
   }),
+
+  products: many(products),
 }));
 
 export const productsRelations = relations(products, ({ one, many }) => ({
@@ -57,3 +71,13 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
     references: [products.id]
   })
 }));
+
+export const passwordResetTokensRelations = relations(passwordResetTokens, ({ one }) => ({
+  users: one(users, {
+    fields: [passwordResetTokens.userId],
+    references: [users.id]
+  })
+
+
+}));
+
