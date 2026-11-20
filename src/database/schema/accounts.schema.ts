@@ -1,8 +1,8 @@
 import { pgTable, text, primaryKey, integer } from "drizzle-orm/pg-core";
 import { users } from "./users.schema";
 
-export const accounts = pgTable("account", {
-    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+export const accounts = pgTable("accounts", {
+    userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     type: text("type").notNull(),
     provider: text("provider").notNull(),
     providerAccountId: text("providerAccountId").notNull(),

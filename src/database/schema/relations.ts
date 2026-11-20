@@ -17,7 +17,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   orders: many(orders),
 }));
 
-export const accountRelations = relations(accounts, ({ one }) => ({
+export const accountsRelations = relations(accounts, ({ one }) => ({
   users: one(users, {
     fields: [accounts.userId],
     references: [users.id],

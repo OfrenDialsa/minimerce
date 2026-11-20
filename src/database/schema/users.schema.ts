@@ -6,10 +6,11 @@ export const users = pgTable("users", {
     publicId: text("public_id").$defaultFn(() => ulid()),
     name: text("name").notNull(),
     email: text("email").notNull().unique(),
-    passwordHash: text("password_hash").notNull(),
+    password: text("password"),
     phone: text("phone"),
     avatarUrl: text("avatar_url"),
-    emailVerified: timestamp("emailVerified", { mode: "date" }),
+    role: text("role").default("user"),
+    emailVerified: timestamp("email_verified", { mode: "date" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

@@ -17,7 +17,7 @@ async function main() {
     console.log("[~] Sedang menjalankan migrasi database...");
 
     try {
-        await migrate(db, { migrationsFolder: "@/drizzle" });
+        await migrate(db, { migrationsFolder: "./src/database/drizzle" });
 
         console.log("[v] Migrasi database berhasil diselesaikan!");
     } catch (error) {
