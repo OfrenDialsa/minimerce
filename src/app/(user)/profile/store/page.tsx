@@ -138,7 +138,7 @@ async function StoreContent() {
               Kunjungi Toko
             </Link>
             <Link
-              href="/store/edit"
+              href="/profile/store/edit"
               className="rounded-xs bg-[#ee4d2d] px-4 py-2 text-xs font-semibold text-white shadow-2xs transition-colors hover:bg-[#d73211]"
             >
               Edit Profil Toko

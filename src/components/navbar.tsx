@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { auth } from "@/auth";
 import { NavbarBurgerButton } from "@/components/navbar-burger";
 import Image from "next/image";
+import { LogIn, Store, User } from "lucide-react";
 
 export async function Navbar() {
   await connection();
@@ -47,9 +48,10 @@ export async function Navbar() {
           {session?.user && (
             <Link
               href="/profile/store"
-              className="bg-[#ee4d2d] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#d73211]"
+              className="inline-flex items-center gap-2 rounded-sm bg-orange-600 hover:bg-orange-200 px-4 py-2 text-xs font-semibold text-white hover:text-orange-600 transition-colors "
             >
-              Kelola Toko Saya
+              <Store className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>Kelola Toko Saya</span>
             </Link>
           )}
         </div>
@@ -59,7 +61,7 @@ export async function Navbar() {
             <Link
               href="/cart"
               aria-label="Buka Keranjang"
-              className="inline-flex items-center gap-2 py-2 px-3.5 text-sm font-medium text-gray-700 hover:text-orange-600 bg-gray-50 hover:bg-orange-50 border border-gray-200 hover:border-orange-200 rounded-lg transition-colors focus:outline-none focus:ring-4 focus:ring-orange-500/20"
+              className="inline-flex items-center gap-2 py-2 px-3.5 text-sm font-medium text-white hover:text-orange-600 bg-orange-600 hover:bg-orange-200 border border-gray-200 hover:border-orange-200 rounded-lg transition-colors focus:outline-none focus:ring-4 focus:ring-orange-500/20"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -84,14 +86,16 @@ export async function Navbar() {
               href="/profile"
               className="inline-flex items-center gap-2 py-2 px-3.5 text-sm font-medium text-gray-700 hover:text-orange-600 bg-gray-50 hover:bg-orange-50 border border-gray-200 hover:border-orange-200 rounded-lg transition-colors"
             >
+              <User className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span>{session.user.name || "Profil"}</span>
             </Link>
           ) : (
             <Link
               href="/login"
-              className="py-2 px-4 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors focus:outline-none focus:ring-4 focus:ring-orange-500/20"
+              className="inline-flex items-center gap-2 py-2 px-4 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors focus:outline-none focus:ring-4 focus:ring-orange-500/20"
             >
-              Login
+              <LogIn className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>Login</span>
             </Link>
           )}
         </div>

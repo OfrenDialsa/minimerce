@@ -1,5 +1,11 @@
+import Link from "next/link";
 import Image from "next/image";
 import type { Product } from "@/database/schema";
+
+interface PublicProductCardProps {
+  product: Product & { storeSlug?: string | null };
+  storeSlug?: string | null;
+}
 
 function formatRupiah(amount: number): string {
   return new Intl.NumberFormat("id-ID", {
@@ -19,12 +25,19 @@ function isSafeImageSrc(url: string | null): boolean {
   );
 }
 
-export function PublicProductCard({ product }: { product: Product }) {
+export function PublicProductCard({
+  product,
+  storeSlug,
+}: PublicProductCardProps) {
   const showImage = isSafeImageSrc(product.imageUrl);
   const isOutOfStock = product.stock <= 0;
+  const resolvedStoreSlug = storeSlug ?? product.storeSlug ?? "";
+  const productHref = resolvedStoreSlug
+    ? `/store/${encodeURIComponent(resolvedStoreSlug)}/products/${encodeURIComponent(product.slug)}`
+    : null;
 
-  return (
-    <article className="flex h-full flex-col justify-between border border-gray-200 bg-white p-3.5 transition-colors hover:border-[#ee4d2d]">
+  const cardBody = (
+    <>
       <div>
         <div className="relative aspect-square w-full overflow-hidden border border-gray-100 bg-gray-50">
           {showImage && product.imageUrl ? (
@@ -57,7 +70,7 @@ export function PublicProductCard({ product }: { product: Product }) {
             </span>
           )}
 
-          <h3 className="mt-1.5 line-clamp-2 text-sm font-semibold text-gray-900">
+          <h3 className="mt-1.5 line-clamp-2 text-sm font-semibold text-gray-900 group-hover:text-[#ee4d2d] transition-colors">
             {product.name}
           </h3>
 
@@ -77,6 +90,21 @@ export function PublicProductCard({ product }: { product: Product }) {
           )}
         </div>
       </div>
+    </>
+  );
+
+  const cardClassName =
+    "group flex h-full flex-col justify-between border border-gray-200 bg-white p-3.5 transition-colors hover:border-[#ee4d2d]";
+
+  if (!productHref) {
+    return <article className={cardClassName}>{cardBody}</article>;
+  }
+
+  return (
+    <article className="h-full">
+      <Link href={productHref} className={cardClassName}>
+        {cardBody}
+      </Link>
     </article>
   );
 }

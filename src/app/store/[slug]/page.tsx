@@ -222,7 +222,11 @@ async function PublicStoreContent({
           ) : (
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {publicProducts.map((product) => (
-                <PublicProductCard key={product.id} product={product} />
+                <PublicProductCard
+                  key={product.id}
+                  product={product}
+                  storeSlug={store.slug}
+                />
               ))}
             </div>
           )}

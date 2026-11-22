@@ -10,6 +10,7 @@ import { saveLocalImage } from "@/lib/save-image";
 import { revalidatePath } from "next/cache";
 import { deleteLocalLogoFile } from "./storage.action";
 import { connection } from "next/server";
+
 export type CreateStoreActionState = {
     error?: string;
     fieldErrors?: {
@@ -159,6 +160,206 @@ export async function createStoreAction(
         return {
             error:
                 "Terjadi kesalahan saat membuat toko. Silakan coba beberapa saat lagi.",
+        };
+    }
+}
+
+export type UpdateStoreActionState = {
+    error?: string;
+    message?: string;
+    fieldErrors?: {
+        name?: string[];
+        description?: string[];
+        logoUrl?: string[];
+        activeAddressId?: string[];
+        isActive?: string[];
+    };
+    data?: {
+        id: number;
+        publicId: string | null;
+        slug: string;
+        name: string;
+        description: string | null;
+        logoUrl: string | null;
+        activeAddressId: number | null;
+        isActive: boolean;
+    };
+};
+
+const nullableAddressIdFromForm = z.preprocess((val) => {
+    if (val === undefined) return undefined;
+    if (val === null || val === "") return null;
+    const num = Number(val);
+    return Number.isInteger(num) && num > 0 ? num : NaN;
+}, z.number().int().positive("Alamat toko tidak valid").nullable().optional());
+
+const optionalBooleanFromForm = z.preprocess((val) => {
+    if (val === undefined || val === null || val === "") return undefined;
+    if (typeof val === "boolean") return val;
+    if (typeof val === "string") {
+        const normalized = val.trim().toLowerCase();
+        if (normalized === "true" || normalized === "1" || normalized === "on") {
+            return true;
+        }
+        if (normalized === "false" || normalized === "0" || normalized === "off") {
+            return false;
+        }
+    }
+    return val;
+}, z.boolean().optional());
+
+const updateStoreSchema = z.object({
+    name: z
+        .string()
+        .trim()
+        .min(2, "Nama toko minimal 2 karakter")
+        .max(100, "Nama toko maksimal 100 karakter"),
+    description: z
+        .string()
+        .trim()
+        .max(500, "Deskripsi maksimal 500 karakter")
+        .optional()
+        .or(z.literal("")),
+    activeAddressId: nullableAddressIdFromForm,
+    isActive: optionalBooleanFromForm,
+});
+
+export async function updateStoreAction(
+    _prevState: UpdateStoreActionState | unknown,
+    formData: FormData,
+): Promise<UpdateStoreActionState> {
+    try {
+        const userId = await getCurrentUserId();
+        if (!userId) {
+            return { error: "Kamu harus login terlebih dahulu untuk mengubah toko." };
+        }
+
+        const [existingStore] = await db
+            .select({
+                id: stores.id,
+                publicId: stores.publicId,
+                slug: stores.slug,
+                name: stores.name,
+                description: stores.description,
+                logoUrl: stores.logoUrl,
+                activeAddressId: stores.activeAddressId,
+                isActive: stores.isActive,
+            })
+            .from(stores)
+            .where(eq(stores.userId, userId))
+            .limit(1);
+
+        if (!existingStore) {
+            return { error: "Toko tidak ditemukan atau kamu belum memiliki toko." };
+        }
+
+        const parsed = updateStoreSchema.safeParse({
+            name: formData.get("name"),
+            description: formData.get("description"),
+            activeAddressId: formData.has("activeAddressId")
+                ? formData.get("activeAddressId")
+                : undefined,
+            isActive: formData.has("isActive") ? formData.get("isActive") : undefined,
+        });
+
+        if (!parsed.success) {
+            return {
+                error: "Periksa kembali isian form toko kamu.",
+                fieldErrors: parsed.error.flatten().fieldErrors,
+            };
+        }
+
+        const { name, description, activeAddressId, isActive } = parsed.data;
+
+        let nextActiveAddressId = existingStore.activeAddressId;
+        if (activeAddressId !== undefined) {
+            if (activeAddressId === null) {
+                nextActiveAddressId = null;
+            } else {
+                const [ownedAddress] = await db
+                    .select({ id: addresses.id })
+                    .from(addresses)
+                    .where(
+                        and(
+                            eq(addresses.id, activeAddressId),
+                            eq(addresses.userId, userId),
+                        ),
+                    )
+                    .limit(1);
+
+                if (!ownedAddress) {
+                    return {
+                        error: "Alamat yang dipilih tidak valid atau bukan milik akun kamu.",
+                        fieldErrors: {
+                            activeAddressId: ["Pilih alamat yang terdaftar di akun kamu."],
+                        },
+                    };
+                }
+
+                nextActiveAddressId = ownedAddress.id;
+            }
+        }
+
+        let nextLogoUrl = existingStore.logoUrl;
+        const logoFile = formData.get("logo");
+
+        if (logoFile instanceof File && logoFile.size > 0) {
+            const saved = await saveLocalImage(logoFile, "");
+            if ("error" in saved) {
+                return {
+                    error: saved.error,
+                    fieldErrors: { logoUrl: [saved.error] },
+                };
+            }
+            nextLogoUrl = saved.url;
+        }
+
+        const nextDescription =
+            description !== undefined
+                ? description
+                    ? description
+                    : null
+                : existingStore.description;
+        const nextIsActive = isActive ?? existingStore.isActive;
+        const now = new Date();
+
+        const [updated] = await db
+            .update(stores)
+            .set({
+                name,
+                description: nextDescription,
+                logoUrl: nextLogoUrl,
+                activeAddressId: nextActiveAddressId,
+                isActive: nextIsActive,
+                updatedAt: now,
+            })
+            .where(and(eq(stores.id, existingStore.id), eq(stores.userId, userId)))
+            .returning({
+                id: stores.id,
+                publicId: stores.publicId,
+                slug: stores.slug,
+                name: stores.name,
+                description: stores.description,
+                logoUrl: stores.logoUrl,
+                activeAddressId: stores.activeAddressId,
+                isActive: stores.isActive,
+            });
+
+        revalidatePath("/profile/store");
+        revalidatePath("/profile/store/edit");
+        revalidatePath("/profile/store/orders");
+        revalidatePath(`/store/${existingStore.slug}`);
+        revalidatePath("/");
+
+        return {
+            message: "Informasi toko berhasil diperbarui.",
+            data: updated,
+        };
+    } catch (err: unknown) {
+        console.error("updateStoreAction error:", err);
+        return {
+            error:
+                "Terjadi kesalahan saat memperbarui toko. Silakan coba beberapa saat lagi.",
         };
     }
 }
