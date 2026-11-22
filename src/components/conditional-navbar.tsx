@@ -7,8 +7,10 @@ const HIDDEN_NAVBAR_PATHS = [
   "/login",
   // tambahkan path lain jika ingin disembunyikan juga, misal:
   "/register",
+  "/register/verification-sent",
   "/forgot-password",
   "/reset-password",
+  "/verified-success",
 ];
 
 export function ConditionalNavbar({ children }: { children: ReactNode }) {

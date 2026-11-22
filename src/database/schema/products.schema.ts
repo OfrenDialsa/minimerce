@@ -1,15 +1,13 @@
 import { pgTable, integer, boolean, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { ulid } from "ulid";
 import { stores } from "./stores.schema";
-import { categories } from "./categories.schema";
 
 export const products = pgTable("products", {
     id: serial("id").primaryKey(),
     publicId: text("public_id").$defaultFn(() => ulid()),
-    storeId: integer("store_id").notNull().unique()
+    storeId: integer("store_id").notNull()
         .references(() => stores.id, { onDelete: "cascade" }),
-    categoryId: integer("category_id")
-        .references(() => categories.id, { onDelete: "set null" }),
+    category: text("category"),
     name: text("name").notNull(),
     slug: text("slug").notNull(),
     description: text("description"),

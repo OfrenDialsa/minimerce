@@ -5,7 +5,10 @@ import { products } from "./products.schema";
 
 export const orderItems = pgTable("order_items", {
     id: serial("id").primaryKey(),
-    publicId: text("public_id").notNull().unique().$defaultFn(() => ulid()),
+    publicId: text("public_id")
+        .notNull()
+        .unique()
+        .$defaultFn(() => ulid()),
     orderId: integer("order_id")
         .notNull()
         .references(() => orders.id, { onDelete: "cascade" }),
@@ -13,7 +16,7 @@ export const orderItems = pgTable("order_items", {
         .notNull()
         .references(() => products.id, { onDelete: "restrict" }),
     quantity: integer("quantity").notNull(),
-    priceAtPurchase: integer("price_at_purchase").notNull(), // Harga produk saat dibeli
+    priceAtPurchase: integer("price_at_purchase").notNull(),
 });
 
 export type OrderItems = typeof orderItems.$inferSelect;

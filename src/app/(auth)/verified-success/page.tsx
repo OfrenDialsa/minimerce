@@ -7,7 +7,7 @@ export default function VerifiedSuccessPage() {
       <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-xl border border-gray-100 text-center">
         {/* Ikon Sukses */}
         <div className="flex justify-center mb-4">
-          <CheckCircle2 className="h-16 w-16 text-emerald-500" />
+          <CheckCircle2 className="h-16 w-16 text-orange-500" />
         </div>
 
         {/* Teks Informasi */}
@@ -22,7 +22,7 @@ export default function VerifiedSuccessPage() {
         {/* Tombol Masuk */}
         <Link
           href="/login"
-          className="w-full inline-block py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-500/20"
+          className="w-full inline-block py-2.5 px-4 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-lg transition-colors shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-500/20"
         >
           Masuk ke Akun
         </Link>

@@ -1,5 +1,6 @@
-import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, timestamp, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { ulid } from "ulid";
+import { addresses } from "./addresses.schema";
 
 export const users = pgTable("users", {
     id: serial("id").primaryKey(),
@@ -10,6 +11,7 @@ export const users = pgTable("users", {
     phone: text("phone"),
     avatarUrl: text("avatar_url"),
     role: text("role").default("user"),
+    defaultAddressId: integer("default_address_id").references((): AnyPgColumn => addresses.id, { onDelete: "set null" }),
     emailVerified: timestamp("email_verified", { mode: "date" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),

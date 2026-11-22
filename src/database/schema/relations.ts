@@ -2,11 +2,10 @@ import { relations } from "drizzle-orm";
 import { users } from "./users.schema";
 import { stores } from "./stores.schema";
 import { products } from "./products.schema";
-import { categories } from "./categories.schema";
 import { orderItems } from "./order-items.schema";
 import { orders } from "./orders.schema";
 import { passwordResetTokens } from "./password-reset-tokens.schema";
-import { accounts } from "./accounts.schema";
+import { addresses } from "./addresses.schema";
 
 export const usersRelations = relations(users, ({ one, many }) => ({
   store: one(stores, {
@@ -14,13 +13,23 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     references: [stores.userId],
   }),
 
+  addresses: many(addresses, {
+    relationName: "user_addresses",
+  }),
+  defaultAddress: one(addresses, {
+    fields: [users.defaultAddressId],
+    references: [addresses.id],
+    relationName: "user_default_address",
+  }),
+
   orders: many(orders),
 }));
 
-export const accountsRelations = relations(accounts, ({ one }) => ({
-  users: one(users, {
-    fields: [accounts.userId],
+export const addressesRelations = relations(addresses, ({ one }) => ({
+  user: one(users, {
+    fields: [addresses.userId],
     references: [users.id],
+    relationName: "user_addresses",
   }),
 
 }));
@@ -38,11 +47,6 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   store: one(stores, {
     fields: [products.storeId],
     references: [stores.id],
-  }),
-
-  category: one(categories, {
-    fields: [products.categoryId],
-    references: [categories.id],
   }),
 
   orderItems: many(orderItems),

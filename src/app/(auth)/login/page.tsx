@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react";
 import Input from "@/components/ui/input";
 import { useActionState } from "react";
 import Button from "@/components/ui/button";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [state, formAction, isPending] = useActionState(loginAction, null);
@@ -116,6 +117,16 @@ export default function LoginPage() {
             Daftar di sini
           </a>
         </p>
+      </div>
+
+      <div className="w-full max-w-md mt-4 flex justify-center">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 py-2 px-4 text-sm font-medium text-gray-600 hover:text-orange-600 shadow-xs transition-colors"
+        >
+          <span aria-hidden="true">←</span>
+          <span>Kembali ke Beranda</span>
+        </Link>
       </div>
     </div>
   );

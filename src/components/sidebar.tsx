@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { auth } from "@/auth";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { StoreAccessButton } from "@/components/store/access-button";
 
 export async function Sidebar() {
   await connection();
@@ -32,6 +33,9 @@ export async function Sidebar() {
         </div>
 
         <SidebarNav />
+
+        <div className="border-t mt-6 border-gray-200 flex flex-col gap-2.5" />
+        <StoreAccessButton />
       </div>
 
       <div className="pt-4 border-t border-gray-200 flex flex-col">

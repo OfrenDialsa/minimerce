@@ -38,15 +38,47 @@ export async function Navbar() {
             </Link>
 
             <Link
-              href="/toko"
+              href="/orders"
               className="text-sm font-medium text-gray-700 hover:text-orange-600 transition-colors"
             >
-              Toko
+              Pesanan saya
             </Link>
           </nav>
+          {session?.user && (
+            <Link
+              href="/profile/store"
+              className="bg-[#ee4d2d] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#d73211]"
+            >
+              Kelola Toko Saya
+            </Link>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
+          {session?.user && (
+            <Link
+              href="/cart"
+              aria-label="Buka Keranjang"
+              className="inline-flex items-center gap-2 py-2 px-3.5 text-sm font-medium text-gray-700 hover:text-orange-600 bg-gray-50 hover:bg-orange-50 border border-gray-200 hover:border-orange-200 rounded-lg transition-colors focus:outline-none focus:ring-4 focus:ring-orange-500/20"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-4 h-4 shrink-0"
+                aria-hidden="true"
+              >
+                <circle cx="8" cy="21" r="1" />
+                <circle cx="19" cy="21" r="1" />
+                <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+              </svg>
+              <span>Keranjang</span>
+            </Link>
+          )}
           {session?.user ? (
             <Link
               href="/profile"

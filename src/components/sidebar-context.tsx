@@ -2,8 +2,11 @@
 
 import {
   createContext,
+  Suspense,
   useCallback,
   useContext,
+  useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -18,15 +21,22 @@ type SidebarContextValue = {
 
 const SidebarContext = createContext<SidebarContextValue | null>(null);
 
-export function SidebarProvider({ children }: { children: ReactNode }) {
+function PathnameWatcher({ onNavigate }: { onNavigate: () => void }) {
   const pathname = usePathname();
-  const [lastPathname, setLastPathname] = useState(pathname);
-  const [isOpen, setIsOpen] = useState(false);
+  const prevPathnameRef = useRef(pathname);
 
-  if (pathname !== lastPathname) {
-    setLastPathname(pathname);
-    setIsOpen(false);
-  }
+  useEffect(() => {
+    if (prevPathnameRef.current !== pathname) {
+      prevPathnameRef.current = pathname;
+      onNavigate();
+    }
+  }, [pathname, onNavigate]);
+
+  return null;
+}
+
+export function SidebarProvider({ children }: { children: ReactNode }) {
+  const [isOpen, setIsOpen] = useState(false);
 
   const openSidebar = useCallback(() => setIsOpen(true), []);
   const closeSidebar = useCallback(() => setIsOpen(false), []);
@@ -36,6 +46,9 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     <SidebarContext.Provider
       value={{ isOpen, openSidebar, closeSidebar, toggleSidebar }}
     >
+      <Suspense fallback={null}>
+        <PathnameWatcher onNavigate={closeSidebar} />
+      </Suspense>
       {children}
     </SidebarContext.Provider>
   );

@@ -3,43 +3,34 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/database";
-import { Store, stores } from "@/database/schema";
+import { addresses, Store, stores } from "@/database/schema";
 import { generateUniqueStoreSlug } from "@/lib/generate-slug";
 import { getCurrentUserId } from "@/lib/get-current-userid";
 import { saveLocalImage } from "@/lib/save-image";
 import { revalidatePath } from "next/cache";
 import { deleteLocalLogoFile } from "./storage.action";
 import { connection } from "next/server";
-
 export type CreateStoreActionState = {
     error?: string;
     fieldErrors?: {
         name?: string[];
         description?: string[];
         logoUrl?: string[];
-        address?: string[];
-        postalCode?: string[];
-        province?: string[];
-        city?: string[];
-        district?: string[];
-        village?: string[];
-        latitude?: string[];
-        longitude?: string[];
+        activeAddressId?: string[];
     };
     data?: {
         id: number;
         publicId: string | null;
         slug: string;
+        activeAddressId: number | null;
     };
 };
 
-const optionalCoordFromForm = z.preprocess((val) => {
-    if (val === null || val === undefined) return undefined;
-    const str = String(val).trim();
-    if (str === "") return undefined;
-    const num = Number(str);
-    return Number.isFinite(num) ? num : val;
-}, z.number().optional());
+const optionalAddressIdFromForm = z.preprocess((val) => {
+    if (val === null || val === undefined || val === "") return undefined;
+    const num = Number(val);
+    return Number.isInteger(num) && num > 0 ? num : NaN;
+}, z.number().int().positive("Alamat toko tidak valid").optional());
 
 const createStoreSchema = z.object({
     name: z
@@ -53,31 +44,7 @@ const createStoreSchema = z.object({
         .max(500, "Deskripsi maksimal 500 karakter")
         .optional()
         .or(z.literal("")),
-    address: z
-        .string()
-        .trim()
-        .min(5, "Alamat minimal 5 karakter")
-        .max(300, "Alamat maksimal 300 karakter")
-        .optional()
-        .or(z.literal("")),
-    postalCode: z
-        .string()
-        .trim()
-        .regex(/^\d{5}$/, "Kode pos harus 5 digit angka")
-        .optional()
-        .or(z.literal("")),
-    province: z.string().trim().max(100).optional().or(z.literal("")),
-    city: z.string().trim().max(100).optional().or(z.literal("")),
-    district: z.string().trim().max(100).optional().or(z.literal("")),
-    village: z.string().trim().max(100).optional().or(z.literal("")),
-    latitude: optionalCoordFromForm.refine(
-        (val) => val === undefined || (val >= -90 && val <= 90),
-        "Latitude tidak valid"
-    ),
-    longitude: optionalCoordFromForm.refine(
-        (val) => val === undefined || (val >= -180 && val <= 180),
-        "Longitude tidak valid"
-    ),
+    activeAddressId: optionalAddressIdFromForm,
 });
 
 export async function createStoreAction(
@@ -103,14 +70,7 @@ export async function createStoreAction(
         const parsed = createStoreSchema.safeParse({
             name: formData.get("name"),
             description: formData.get("description"),
-            address: formData.get("address"),
-            postalCode: formData.get("postalCode"),
-            province: formData.get("province"),
-            city: formData.get("city"),
-            district: formData.get("district"),
-            village: formData.get("village"),
-            latitude: formData.get("latitude"),
-            longitude: formData.get("longitude"),
+            activeAddressId: formData.get("activeAddressId"),
         });
 
         if (!parsed.success) {
@@ -123,15 +83,25 @@ export async function createStoreAction(
         const {
             name,
             description,
-            address,
-            postalCode,
-            province,
-            city,
-            district,
-            village,
-            latitude,
-            longitude,
+            activeAddressId,
         } = parsed.data;
+
+        if (activeAddressId !== undefined) {
+            const [ownedAddress] = await db
+                .select({ id: addresses.id })
+                .from(addresses)
+                .where(and(eq(addresses.id, activeAddressId), eq(addresses.userId, userId)))
+                .limit(1);
+
+            if (!ownedAddress) {
+                return {
+                    error: "Alamat yang dipilih tidak valid atau bukan milik akun kamu.",
+                    fieldErrors: {
+                        activeAddressId: ["Pilih alamat yang terdaftar di akun kamu."],
+                    },
+                };
+            }
+        }
 
         const slug = await generateUniqueStoreSlug(db, name);
 
@@ -139,7 +109,7 @@ export async function createStoreAction(
         const logoFile = formData.get("logo");
 
         if (logoFile instanceof File && logoFile.size > 0) {
-            const saved = await saveLocalImage(logoFile, "uploads/stores");
+            const saved = await saveLocalImage(logoFile, "");
             if ("error" in saved) {
                 return {
                     error: saved.error,
@@ -157,21 +127,19 @@ export async function createStoreAction(
                 slug,
                 description: description ? description : null,
                 logoUrl: logoUrl ? logoUrl : null,
-                address: address ? address : null,
-                postalCode: postalCode ? postalCode : null,
-                province: province ? province : null,
-                city: city ? city : null,
-                district: district ? district : null,
-                village: village ? village : null,
-                latitude: latitude ?? null,
-                longitude: longitude ?? null,
+                activeAddressId: activeAddressId ?? null,
                 isActive: true,
             })
             .returning({
                 id: stores.id,
                 publicId: stores.publicId,
                 slug: stores.slug,
+                activeAddressId: stores.activeAddressId,
             });
+
+        revalidatePath("/profile/store");
+        revalidatePath("/profile/store/create");
+        revalidatePath("/");
 
         return {
             data: created,
@@ -304,8 +272,8 @@ export async function deleteStoreAction(
         await deleteLocalLogoFile(deleted.logoUrl);
 
         revalidatePath("/store");
-        revalidatePath("/store/create");
-        revalidatePath(`/toko/${deleted.slug}`);
+        revalidatePath("/profile/store/create");
+        revalidatePath(`/profile/store/${deleted.slug}`);
         revalidatePath("/");
         return {
             success: true,
@@ -316,4 +284,19 @@ export async function deleteStoreAction(
             error: "Terjadi kesalahan saat menghapus toko. Silakan coba beberapa saat lagi.",
         };
     }
+}
+
+
+export async function isUserStoreOwner(userId?: number | null): Promise<boolean> {
+    if (!userId) {
+        return false;
+    }
+
+    const [store] = await db
+        .select({ id: stores.id })
+        .from(stores)
+        .where(eq(stores.userId, userId))
+        .limit(1);
+
+    return Boolean(store);
 }
