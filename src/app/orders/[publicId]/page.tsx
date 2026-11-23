@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { getOrderByPublicId } from "@/actions/order.action";
 import { PaymentProofForm } from "@/components/orders/payment-proof-form";
+import { ConfirmOrderReceivedButton } from "@/components/orders/confirm-order-button";
 
 interface OrderDetailPageProps {
   params: Promise<{ publicId: string }>;
@@ -104,6 +105,8 @@ async function OrderDetailContent({
 
   const { order, shippingAddress, items, role } = result;
   const statusMeta = getStatusMeta(order.status);
+  const normalizedStatus = order.status.trim().toUpperCase();
+  const canConfirmReceived = role === "buyer" && normalizedStatus === "SHIPPED";
 
   return (
     <div className="space-y-6">
@@ -287,6 +290,11 @@ async function OrderDetailContent({
                 </dd>
               </div>
             </dl>
+            {canConfirmReceived && (
+              <div className="mt-4 border-t border-gray-200 pt-4">
+                <ConfirmOrderReceivedButton orderPublicId={order.publicId} />
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -6,6 +6,7 @@ import { useSidebar } from "@/components/sidebar-context";
 
 const menuItems = [
   { href: "/", label: "Beranda" },
+  { href: "/orders", label: "Pesanan saya" },
   { href: "/profile", label: "Profil" },
   { href: "/settings", label: "Setting" },
 ];

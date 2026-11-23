@@ -16,6 +16,8 @@ import {
 } from "@/database/schema";
 import { saveLocalImage } from "@/lib/save-image";
 import { ORDER_STATUS_OPTIONS } from "@/lib/order-status";
+import { sendOrderCompletedEmail, sendOrderConfirmedEmail, sendOrderShippedEmail } from "@/lib/mail";
+import { alias } from "drizzle-orm/pg-core";
 
 export async function createOrderFromCartAction(formData: FormData) {
     const session = await auth();
@@ -683,7 +685,6 @@ export async function getStoreOrdersAction(): Promise<GetStoreOrdersResult> {
     };
 }
 
-
 export type OrderStatusValue = (typeof ORDER_STATUS_OPTIONS)[number];
 
 export type UpdateOrderStatusResult =
@@ -717,11 +718,16 @@ export async function updateOrderStatusAction(
             id: orders.id,
             publicId: orders.publicId,
             buyerId: orders.buyerId,
+            buyerEmail: users.email,
+            buyerName: users.name,
             storeOwnerId: stores.userId,
+            storeName: stores.name,
+            totalAmount: orders.totalAmount,
             status: orders.status,
         })
         .from(orders)
         .innerJoin(stores, eq(orders.storeId, stores.id))
+        .leftJoin(users, eq(orders.buyerId, users.id))
         .where(eq(orders.publicId, cleanPublicId))
         .limit(1);
 
@@ -736,6 +742,16 @@ export async function updateOrderStatusAction(
         };
     }
 
+    const shouldSendConfirmedEmail =
+        normalizedStatus === "CONFIRMED" &&
+        targetOrder.status !== "CONFIRMED" &&
+        Boolean(targetOrder.buyerEmail);
+
+    const shouldSendShippedEmail =
+        normalizedStatus === "SHIPPED" &&
+        targetOrder.status !== "SHIPPED" &&
+        Boolean(targetOrder.buyerEmail);
+
     const now = new Date();
 
     await db
@@ -746,14 +762,133 @@ export async function updateOrderStatusAction(
         })
         .where(eq(orders.id, targetOrder.id));
 
+    if (shouldSendConfirmedEmail && targetOrder.buyerEmail) {
+        try {
+            await sendOrderConfirmedEmail({
+                to: targetOrder.buyerEmail,
+                buyerName: targetOrder.buyerName,
+                orderPublicId: targetOrder.publicId ?? cleanPublicId,
+                storeName: targetOrder.storeName,
+                totalAmount: targetOrder.totalAmount,
+            });
+        } catch (mailError) {
+            console.error("Notifikasi email konfirmasi pesanan gagal:", mailError);
+        }
+    }
+
+    if (shouldSendShippedEmail && targetOrder.buyerEmail) {
+        try {
+            await sendOrderShippedEmail({
+                to: targetOrder.buyerEmail,
+                buyerName: targetOrder.buyerName,
+                orderPublicId: targetOrder.publicId ?? cleanPublicId,
+                storeName: targetOrder.storeName,
+                totalAmount: targetOrder.totalAmount,
+            });
+        } catch (mailError) {
+            console.error("Notifikasi email pengiriman pesanan gagal:", mailError);
+        }
+    }
+
     revalidatePath("/store/orders");
-    revalidatePath(`/store/orders/${targetOrder.publicId}`);
-    revalidatePath(`/orders/${targetOrder.publicId}`);
+    revalidatePath(`/store/orders/${targetOrder.publicId ?? cleanPublicId}`);
+    revalidatePath(`/orders/${targetOrder.publicId ?? cleanPublicId}`);
     revalidatePath("/orders");
 
     return {
         ok: true,
         status: normalizedStatus,
         message: `Status pesanan berhasil diubah menjadi ${normalizedStatus}.`,
+    };
+}
+export async function confirmOrderReceivedAction(
+    publicId: string,
+): Promise<UpdateOrderStatusResult> {
+    const session = await auth();
+    const currentUserId = Number(session?.user?.id);
+
+    if (!Number.isSafeInteger(currentUserId) || currentUserId <= 0) {
+        return { ok: false, error: "Silakan login terlebih dahulu." };
+    }
+
+    const cleanPublicId = publicId.trim();
+    if (!cleanPublicId) {
+        return { ok: false, error: "ID pesanan tidak valid." };
+    }
+
+    const buyerUser = alias(users, "buyer");
+    const sellerUser = alias(users, "seller");
+
+    const [targetOrder] = await db
+        .select({
+            id: orders.id,
+            publicId: orders.publicId,
+            buyerId: orders.buyerId,
+            buyerName: buyerUser.name,
+            storeName: stores.name,
+            sellerEmail: sellerUser.email,
+            sellerName: sellerUser.name,
+            totalAmount: orders.totalAmount,
+            status: orders.status,
+        })
+        .from(orders)
+        .innerJoin(stores, eq(orders.storeId, stores.id))
+        .leftJoin(buyerUser, eq(orders.buyerId, buyerUser.id))
+        .leftJoin(sellerUser, eq(stores.userId, sellerUser.id))
+        .where(eq(orders.publicId, cleanPublicId))
+        .limit(1);
+
+    if (!targetOrder) {
+        return { ok: false, error: "Pesanan tidak ditemukan." };
+    }
+
+    if (Number(targetOrder.buyerId) !== currentUserId) {
+        return {
+            ok: false,
+            error: "Hanya pembeli yang dapat mengonfirmasi penerimaan pesanan ini.",
+        };
+    }
+
+    if (targetOrder.status.trim().toUpperCase() !== "SHIPPED") {
+        return {
+            ok: false,
+            error: "Pesanan hanya dapat dikonfirmasi diterima saat berstatus Dikirim.",
+        };
+    }
+
+    const resolvedPublicId = targetOrder.publicId ?? cleanPublicId;
+
+    await db
+        .update(orders)
+        .set({
+            status: "COMPLETED",
+            updatedAt: new Date(),
+        })
+        .where(eq(orders.id, targetOrder.id));
+
+    if (targetOrder.sellerEmail) {
+        try {
+            await sendOrderCompletedEmail({
+                to: targetOrder.sellerEmail,
+                storeOwnerName: targetOrder.sellerName,
+                buyerName: targetOrder.buyerName,
+                orderPublicId: resolvedPublicId,
+                storeName: targetOrder.storeName,
+                totalAmount: targetOrder.totalAmount,
+            });
+        } catch (mailError) {
+            console.error("Notifikasi email pesanan selesai ke toko gagal:", mailError);
+        }
+    }
+
+    revalidatePath("/orders");
+    revalidatePath(`/orders/${resolvedPublicId}`);
+    revalidatePath("/store/orders");
+    revalidatePath(`/store/orders/${resolvedPublicId}`);
+
+    return {
+        ok: true,
+        status: "COMPLETED",
+        message: "Pesanan berhasil ditandai sudah diterima (Selesai).",
     };
 }

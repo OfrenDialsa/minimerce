@@ -132,6 +132,12 @@ async function StoreContent() {
 
           <div className="flex flex-wrap items-center gap-2 sm:pt-2.5">
             <Link
+              href={`/profile/store/orders`}
+              className="inline-flex items-center border border-[#ee4d2d] bg-orange-50/60 px-3.5 py-2 text-xs font-semibold text-[#ee4d2d] transition-colors hover:bg-orange-100/70"
+            >
+              <span> Kelola Pesanan</span>
+            </Link>
+            <Link
               href={`/store/${store.slug}`}
               className="rounded-xs border border-[#ee4d2d] bg-orange-50/60 px-3.5 py-2 text-xs font-semibold text-[#ee4d2d] transition-colors hover:bg-orange-100/70"
             >

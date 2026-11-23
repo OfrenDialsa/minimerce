@@ -48,7 +48,7 @@ export async function Navbar() {
           {session?.user && (
             <Link
               href="/profile/store"
-              className="inline-flex items-center gap-2 rounded-sm bg-orange-600 hover:bg-orange-200 px-4 py-2 text-xs font-semibold text-white hover:text-orange-600 transition-colors "
+              className="inline-flex items-center gap-2 rounded-sm bg-orange-600 hover:bg-orange-700 px-4 py-2 text-xs font-semibold text-white transition-colors "
             >
               <Store className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span>Kelola Toko Saya</span>
@@ -61,7 +61,7 @@ export async function Navbar() {
             <Link
               href="/cart"
               aria-label="Buka Keranjang"
-              className="inline-flex items-center gap-2 py-2 px-3.5 text-sm font-medium text-white hover:text-orange-600 bg-orange-600 hover:bg-orange-200 border border-gray-200 hover:border-orange-200 rounded-lg transition-colors focus:outline-none focus:ring-4 focus:ring-orange-500/20"
+              className="inline-flex items-center gap-2 py-2 px-3.5 text-sm font-medium text-white  bg-orange-600 hover:bg-orange-700 border border-gray-200 hover:border-orange-200 rounded-lg transition-colors focus:outline-none focus:ring-4 focus:ring-orange-500/20"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
